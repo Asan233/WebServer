@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>俄罗斯方块 - 登录</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-image: linear-gradient(to right, #6a11cb 0%, #2575fc 100%);
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            width: 400px;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: bold;
+        }
+        
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus,
+        input[type="password"]:focus {
+            border-color: #2575fc;
+            outline: none;
+        }
+        
+        .btn {
+            background-color: #2575fc;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: #1a5cb8;
+        }
+        
+        .switch-form {
+            margin-top: 20px;
+            color: #666;
+        }
+        
+        .switch-form a {
+            color: #2575fc;
+            text-decoration: none;
+        }
+        
+        .switch-form a:hover {
+            text-decoration: underline;
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            margin-top: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>双人成形--俄罗斯方块</h1>
+        
+        <div id="login-form">
+            <h2>登录</h2>
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" placeholder="请输入用户名">
+            </div>
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" placeholder="请输入密码">
+            </div>
+            <button id="login-btn" class="btn">登录</button>
+            <div class="switch-form">
+                还没有账号？<a href="#" id="show-register">立即注册</a>
+            </div>
+            <div id="login-error" class="error-message"></div>
+        </div>
+        
+        <div id="register-form" style="display: none;">
+            <h2>注册</h2>
+            <div class="form-group">
+                <label for="reg-username">用户名</label>
+                <input type="text" id="reg-username" placeholder="请输入用户名">
+            </div>
+            <div class="form-group">
+                <label for="reg-password">密码</label>
+                <input type="password" id="reg-password" placeholder="请输入密码">
+            </div>
+            <div class="form-group">
+                <label for="reg-confirm-password">确认密码</label>
+                <input type="password" id="reg-confirm-password" placeholder="请再次输入密码">
+            </div>
+            <button id="register-btn" class="btn">注册</button>
+            <div class="switch-form">
+                已有账号？<a href="#" id="show-login">立即登录</a>
+            </div>
+            <div id="register-error" class="error-message"></div>
+        </div>
+    </div>
+
+    <script>
+        // 切换登录和注册表单
+        document.getElementById('show-register').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('register-form').style.display = 'block';
+        });
+        
+        document.getElementById('show-login').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('register-form').style.display = 'none';
+            document.getElementById('login-form').style.display = 'block';
+        });
+        
+        // 登录请求
+        document.getElementById('login-btn').addEventListener('click', function() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (!username || !password) {
+                document.getElementById('login-error').textContent = '用户名和密码不能为空';
+                document.getElementById('login-error').style.display = 'block';
+                return;
+            }
+            
+            fetch('/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    window.location.href = '/menu';
+                } else {
+                    document.getElementById('login-error').textContent = data.message || '登录失败，请检查用户名和密码';
+                    document.getElementById('login-error').style.display = 'block';
+                }
+            })
+            .catch(error => {
+                document.getElementById('login-error').textContent = '网络错误，请稍后再试';
+                document.getElementById('login-error').style.display = 'block';
+                console.error('Error:', error);
+            });
+        });
+        
+        // 注册请求
+        document.getElementById('register-btn').addEventListener('click', function() {
+            const username = document.getElementById('reg-username').value;
+            const password = document.getElementById('reg-password').value;
+            const confirmPassword = document.getElementById('reg-confirm-password').value;
+            
+            if (!username || !password || !confirmPassword) {
+                document.getElementById('register-error').textContent = '所有字段都必须填写';
+                document.getElementById('register-error').style.display = 'block';
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                document.getElementById('register-error').textContent = '两次输入的密码不一致';
+                document.getElementById('register-error').style.display = 'block';
+                return;
+            }
+            
+            fetch('/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    // 注册成功，显示登录表单
+                    document.getElementById('register-form').style.display = 'none';
+                    document.getElementById('login-form').style.display = 'block';
+                    document.getElementById('login-error').textContent = '注册成功，请登录';
+                    document.getElementById('login-error').style.display = 'block';
+                    document.getElementById('login-error').style.color = '#2ecc71';
+                } else {
+                    document.getElementById('register-error').textContent = data.message || '注册失败，请尝试其他用户名';
+                    document.getElementById('register-error').style.display = 'block';
+                }
+            })
+            .catch(error => {
+                document.getElementById('register-error').textContent = '网络错误，请稍后再试';
+                document.getElementById('register-error').style.display = 'block';
+                console.error('Error:', error);
+            });
+        });
+    </script>
+</body>
+</html>
+

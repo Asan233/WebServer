@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>俄罗斯方块 - 游戏大厅</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            background-image: linear-gradient(to right, #6a11cb 0%, #2575fc 100%);
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        h1 {
+            margin: 0;
+            color: #2575fc;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+        
+        .username {
+            margin-right: 15px;
+            font-weight: bold;
+        }
+        
+        .logout-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .main-content {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .room-list {
+            flex: 2;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        
+        .actions {
+            flex: 1;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        
+        .room-item {
+            border: 1px solid #eee;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+        
+        .room-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .room-info {
+            flex: 1;
+        }
+        
+        .room-id {
+            font-weight: bold;
+            color: #2575fc;
+            margin-bottom: 5px;
+        }
+        
+        .room-status {
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .room-players {
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .join-btn {
+            background-color: #2575fc;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .create-room-btn {
+            background-color: #2575fc;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        
+        .refresh-btn {
+            background-color: #9b59b6;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        
+        .no-rooms {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid #2575fc;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>俄罗斯方块游戏大厅</h1>
+            <div class="user-info">
+                <span class="username" id="username">加载中...</span>
+                <button class="logout-btn" id="logout-btn">退出登录</button>
+            </div>
+        </header>
+        
+        <div class="main-content">
+            <div class="room-list">
+                <h2>房间列表</h2>
+                <div id="rooms-container">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>加载房间列表中...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="actions">
+                <h2>操作</h2>
+                <button class="create-room-btn" id="create-room-btn">创建新房间</button>
+                <button class="refresh-btn" id="refresh-btn">刷新房间列表</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let username = '';
+        let userId = '';
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 检查用户是否已登录
+            checkLoginStatus();
+            
+            // 添加事件监听器
+            document.getElementById('logout-btn').addEventListener('click', logout);
+            document.getElementById('create-room-btn').addEventListener('click', createRoom);
+            document.getElementById('refresh-btn').addEventListener('click', loadRoomList);
+        });
+        
+        // 检查登录状态
+        function checkLoginStatus() {
+            fetch('/api/user/status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.isLoggedIn) {
+
+                        document.getElementById('username').textContent = data.username;
+                        username = data.username;
+                        userId = data.userId;
+                        loadRoomList();
+                        
+                    } else {
+                        // 未登录，重定向到登录页面
+                        window.location.href = '/entry';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('获取用户信息失败，请重新登录');
+                    window.location.href = '/entry';
+                });
+        }
+        
+        // 加载房间列表
+        function loadRoomList() {
+            const roomsContainer = document.getElementById('rooms-container');
+            roomsContainer.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>加载房间列表中...</p>
+                </div>
+            `;
+            
+            fetch('/api/rooms')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        displayRooms(data.rooms);
+                    } else {
+                        roomsContainer.innerHTML = `<div class="no-rooms">加载房间列表失败: ${data.message}</div>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    roomsContainer.innerHTML = '<div class="no-rooms">加载房间列表失败，请重试</div>';
+                });
+        }
+        
+        // 显示房间列表
+        function displayRooms(rooms) {
+            const roomsContainer = document.getElementById('rooms-container');
+            
+            if (rooms.length === 0) {
+                roomsContainer.innerHTML = '<div class="no-rooms">当前没有可用的房间，请创建一个新房间</div>';
+                return;
+            }
+            
+            let roomsHtml = '';
+            rooms.forEach(room => {
+                const statusText = room.status === 'waiting' ? '等待中' : '游戏中';
+                const statusColor = room.status === 'waiting' ? '#2ecc71' : '#e74c3c';
+                const joinBtnDisabled = room.status !== 'waiting' || room.players.length >= 2;
+                
+                roomsHtml += `
+                    <div class="room-item">
+                        <div class="room-info">
+                            <div class="room-id">房间 #${room.id}</div>
+                            <div class="room-status">状态: <span style="color: ${statusColor}">${statusText}</span></div>
+                            <div class="room-players">玩家: ${room.players.length}/2</div>
+                        </div>
+                        <button class="join-btn" 
+                                onclick="joinRoom('${room.id}')" 
+                                ${joinBtnDisabled ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
+                            加入
+                        </button>
+                    </div>
+                `;
+            });
+            
+            roomsContainer.innerHTML = roomsHtml;
+        }
+        
+        // 创建房间
+        function createRoom() {
+            fetch('/api/rooms/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    // const userIddata = JSON.stringify({userId: userId});
+                    // const usernamedata = JSON.stringify({username: username});
+                    // const encodedDatauserId = encodeURIComponent(userIddata);
+                    // const encodedDatausername = encodeURIComponent(usernamedata);
+                    
+                    // 创建成功，跳转到房间页面
+                    window.location.href = `/room/${data.roomId}/op/join/userId/${userId}/username/${username}`;
+                } else {
+                    alert('创建房间失败: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('创建房间失败，请重试');
+            });
+        }
+        
+        // 加入房间
+        function joinRoom(roomId) {
+            fetch(`/api/rooms/${roomId}/join`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    // 加入成功，跳转到房间页面
+                    window.location.href = `/room/${roomId}`;
+                } else {
+                    alert('加入房间失败: ' + data.message);
+                    // 刷新房间列表
+                    loadRoomList();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('加入房间失败，请重试');
+            });
+        }
+        
+        // 退出登录
+        function logout() {
+            fetch('/api/user/logout', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    window.location.href = '/entry';
+                } else {
+                    alert('退出登录失败: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('退出登录失败，请重试');
+            });
+        }
+    </script>
+</body>
+</html>

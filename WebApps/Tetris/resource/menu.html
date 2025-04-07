@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>俄罗斯方块 - 菜单</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-image: linear-gradient(to right, #6a11cb 0%, #2575fc 100%);
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            width: 500px;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        
+        .welcome-message {
+            color: #555;
+            margin-bottom: 30px;
+            font-size: 18px;
+        }
+        
+        .menu-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .menu-btn {
+            background-color: #2575fc;
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        
+        .menu-btn:hover {
+            background-color: #1a5cb8;
+            transform: translateY(-2px);
+        }
+        
+        .menu-btn.secondary {
+            background-color: #9b59b6;
+        }
+        
+        .menu-btn.secondary:hover {
+            background-color: #8e44ad;
+        }
+        
+        .menu-btn.danger {
+            background-color: #e74c3c;
+            margin-top: 20px;
+        }
+        
+        .menu-btn.danger:hover {
+            background-color: #c0392b;
+        }
+        
+        .user-stats {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+        
+        .user-stats h3 {
+            color: #333;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .stat-label {
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .stat-value {
+            color: #2575fc;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>俄罗斯方块</h1>
+        
+        <div class="welcome-message">
+            欢迎回来，<span id="username">玩家</span>！
+        </div>
+        
+        <div class="user-stats">
+            <h3>游戏统计</h3>
+            <div class="stat-item">
+                <span class="stat-label">最高分数：</span>
+                <span class="stat-value" id="high-score">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">游戏次数：</span>
+                <span class="stat-value" id="games-played">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">总消除行数：</span>
+                <span class="stat-value" id="total-lines">0</span>
+            </div>
+        </div>
+        
+        <div class="menu-options">
+            <button id="start-game" class="menu-btn">开始游戏</button>
+            <button id="view-leaderboard" class="menu-btn secondary">查看排行榜</button>
+        </div>
+        
+        <button id="logout" class="menu-btn danger">退出登录</button>
+    </div>
+
+    <script>
+        // 页面加载时获取用户信息
+        // document.addEventListener('DOMContentLoaded', function() {
+        //     // 获取用户信息
+        //     fetch('/user/info')
+        //         .then(response => response.json())
+        //         .then(data => {
+        //             if (data.status === 'ok') {
+        //                 document.getElementById('username').textContent = data.username;
+        //                 document.getElementById('high-score').textContent = data.highScore;
+        //                 document.getElementById('games-played').textContent = data.gamesPlayed;
+        //                 document.getElementById('total-lines').textContent = data.totalLines;
+        //             } else {
+        //                 // 如果获取用户信息失败，可能是未登录，重定向到登录页面
+        //                 window.location.href = '/';
+        //             }
+        //         })
+        //         .catch(error => {
+        //             console.error('Error:', error);
+        //             // 出错时也重定向到登录页面
+        //             window.location.href = '/';
+        //         });
+        // });
+        
+        // 开始游戏
+        document.getElementById('start-game').addEventListener('click', function() {
+            window.location.href = '/game/start';
+        });
+        
+        // 查看排行榜
+        document.getElementById('view-leaderboard').addEventListener('click', function() {
+            window.location.href = '/leaderboard';
+        });
+        
+        // 退出登录
+        document.getElementById('logout').addEventListener('click', function() {
+            fetch('/user/logout', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    window.location.href = '/';
+                } else {
+                    alert('退出登录失败，请重试');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('网络错误，请稍后再试');
+            });
+        });
+    </script>
+</body>
+</html>
+

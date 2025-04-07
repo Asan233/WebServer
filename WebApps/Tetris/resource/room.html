@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>俄罗斯方块 - 房间</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background-color: #333;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .logo h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+        
+        .username {
+            margin-right: 15px;
+            font-weight: bold;
+        }
+        
+        .leave-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .leave-btn:hover {
+            background-color: #c0392b;
+        }
+        
+        .room-content {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .game-area {
+            flex: 2;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .sidebar {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .player-list {
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        
+        .player-list h2 {
+            margin-top: 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            font-size: 18px;
+        }
+        
+        .player {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .player:last-child {
+            border-bottom: none;
+        }
+        
+        .player-name {
+            font-weight: bold;
+        }
+        
+        .player-status {
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        
+        .ready {
+            background-color: #2ecc71;
+            color: white;
+        }
+        
+        .not-ready {
+            background-color: #f1c40f;
+            color: #333;
+        }
+        
+        .game-controls {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .ready-btn {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .ready-btn.cancel {
+            background-color: #e74c3c;
+        }
+        
+        .ready-btn:hover {
+            opacity: 0.9;
+        }
+        
+        .game-board {
+            width: 300px;
+            height: 600px;
+            background-color: #111;
+            margin: 0 auto;
+            position: relative;
+            border: 2px solid #333;
+        }
+        
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            color: white;
+        }
+        
+        .connected {
+            background-color: #2ecc71;
+        }
+        
+        .connecting {
+            background-color: #f1c40f;
+        }
+        
+        .disconnected {
+            background-color: #e74c3c;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .room-status {
+            margin-bottom: 15px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .waiting {
+            color: #2ecc71;
+        }
+        
+        .playing {
+            color: #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <h1>俄罗斯方块 - 房间</h1>
+            </div>
+            <div class="user-info">
+                <span class="username" id="username">加载中...</span>
+                <button class="leave-btn" id="leave-btn">离开房间</button>
+            </div>
+        </header>
+        
+        <div class="room-content">
+            <div class="game-area">
+                <div class="room-status waiting" id="room-status">等待玩家准备...</div>
+                <div class="game-board" id="game-board">
+                    <!-- 游戏区域将由JavaScript动态生成 -->
+                </div>
+                <div class="game-controls">
+                    <button class="ready-btn" id="ready-btn">准备</button>
+                </div>
+            </div>
+            
+            <div class="sidebar">
+                <div class="player-list">
+                    <h2>玩家列表</h2>
+                    <div id="players-container">
+                        <div class="loading">加载中...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="connection-status" class="connection-status connecting">
+        正在连接...
+    </div>
+    
+    <script>
+        // 全局变量
+        let socket = null;
+        let roomId = null;
+        let userId = null;
+        let username = null;
+        let isReady = false;
+        
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 从URL中获取房间ID
+            const pathParts = window.location.pathname.split('/');
+            roomId = pathParts[2];
+            
+            // 检查用户是否已登录
+            checkLoginStatus();
+            
+            // 添加事件监听器
+            document.getElementById('leave-btn').addEventListener('click', leaveRoom);
+            document.getElementById('ready-btn').addEventListener('click', toggleReady);
+        });
+        
+        // 检查登录状态
+        function checkLoginStatus() {
+            fetch('/api/user/status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.isLoggedIn == "true") {
+                        userId = data.userId;
+                        username = data.username;
+                        document.getElementById('username').textContent = username;
+                        
+                        // 连接WebSocket
+                        connectWebSocket();
+                    } else {
+                        // 未登录，重定向到登录页面
+                        window.location.href = '/entry';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('获取用户信息失败，请重新登录');
+                    window.location.href = '/entry';
+                });
+        }
+        
+        // 连接WebSocket
+        function connectWebSocket() {
+            // 关闭之前的连接
+            if (socket) {
+                socket.close();
+            }
+            
+            // 创建新的WebSocket连接
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = window.location.host;
+            socket = new WebSocket(`${protocol}//${host}/ws/upgrade`);
+            
+            updateConnectionStatus('connecting');
+            
+            // 连接建立时的回调
+            socket.onopen = function(event) {
+                console.log('WebSocket连接已建立');
+                updateConnectionStatus('connected');
+                
+                console.log('准备发送数据:', {
+                    type: 'join',
+                    roomId: roomId,
+                    userId: userId,
+                    username: username
+                });
+
+                // 发送加入房间消息
+                sendWebSocketMessage({
+                    type: 'join',
+                    roomId: roomId,
+                    userId: userId,
+                    username: username
+                });
+            };
+            
+            // 接收到消息的回调
+            socket.onmessage = function(event) {
+                const message = JSON.parse(event.data);
+                handleWebSocketMessage(message);
+            };
+            
+            // 连接关闭时的回调
+            socket.onclose = function(event) {
+                console.log('WebSocket连接已关闭');
+                updateConnectionStatus('disconnected');
+                
+                // 尝试重新连接
+                setTimeout(connectWebSocket, 3000);
+            };
+            
+            // 连接出错时的回调
+            socket.onerror = function(error) {
+                console.error('WebSocket错误:', error);
+                updateConnectionStatus('disconnected');
+            };
+        }
+        
+        // 更新连接状态显示
+        function updateConnectionStatus(status) {
+            const statusElement = document.getElementById('connection-status');
+            statusElement.className = 'connection-status ' + status;
+            
+            switch(status) {
+                case 'connected':
+                    statusElement.textContent = '已连接';
+                    setTimeout(() => {
+                        statusElement.classList.add('hidden');
+                    }, 2000);
+                    break;
+                case 'connecting':
+                    statusElement.textContent = '正在连接...';
+                    statusElement.classList.remove('hidden');
+                    break;
+                case 'disconnected':
+                    statusElement.textContent = '连接断开，正在重连...';
+                    statusElement.classList.remove('hidden');
+                    break;
+            }
+        }
+        
+        // 发送WebSocket消息
+        function sendWebSocketMessage(message) {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify(message));
+            } else {
+                console.error('WebSocket未连接，无法发送消息');
+            }
+        }
+        
+        // 处理WebSocket消息
+        function handleWebSocketMessage(message) {
+            console.log('收到WebSocket消息:', message);
+            
+            switch(message.type) {
+                case 'roomInfo':
+                    updateRoomInfo(message.data);
+                    break;
+                case 'playerJoined':
+                    addPlayerToList(message.player);
+                    break;
+                case 'playerLeft':
+                    removePlayerFromList(message.userId);
+                    break;
+                case 'playerReady':
+                    updatePlayerStatus(message.userId, message.ready);
+                    break;
+                case 'gameStart':
+                    startGame(message.data);
+                    break;
+                case 'gameUpdate':
+                    updateGame(message.data);
+                    break;
+                case 'gameOver':
+                    endGame(message.data);
+                    break;
+                case 'error':
+                    alert(message.message);
+                    break;
+            }
+        }
+        
+        // 更新房间信息
+        function updateRoomInfo(roomInfo) {
+            // 更新玩家列表
+            const playersContainer = document.getElementById('players-container');
+            playersContainer.innerHTML = '';
+            
+            roomInfo.players.forEach(player => {
+                const playerElement = createPlayerElement(player);
+                playersContainer.appendChild(playerElement);
+            });
+            
+            // 更新房间状态
+            updateRoomStatus(roomInfo.status);
+            
+            // 如果游戏已经开始，更新游戏状态
+            if (roomInfo.status === 'playing') {
+                startGame(roomInfo.gameState);
+            }
+        }
+        
+        // 更新房间状态
+        function updateRoomStatus(status) {
+            const statusElement = document.getElementById('room-status');
+            statusElement.className = 'room-status ' + status;
+            
+            switch(status) {
+                case 'waiting':
+                    statusElement.textContent = '等待玩家准备...';
+                    break;
+                case 'playing':
+                    statusElement.textContent = '游戏进行中';
+                    break;
+                case 'finished':
+                    statusElement.textContent = '游戏已结束';
+                    break;
+            }
+        }
+        
+        // 创建玩家元素
+        function createPlayerElement(player) {
+            const playerDiv = document.createElement('div');
+            playerDiv.className = 'player';
+            playerDiv.dataset.userId = player.userId;
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'player-name';
+            nameSpan.textContent = player.username;
+            
+            const statusSpan = document.createElement('span');
+            statusSpan.className = `player-status ${player.ready ? 'ready' : 'not-ready'}`;
+            statusSpan.textContent = player.ready ? '已准备' : '未准备';
+            
+            playerDiv.appendChild(nameSpan);
+            playerDiv.appendChild(statusSpan);
+            
+            return playerDiv;
+        }
+        
+        // 添加玩家到列表
+        function addPlayerToList(player) {
+            const playersContainer = document.getElementById('players-container');
+            const playerElement = createPlayerElement(player);
+            playersContainer.appendChild(playerElement);
+        }
+        
+        // 从列表中移除玩家
+        function removePlayerFromList(userId) {
+            const playerElement = document.querySelector(`.player[data-user-id="${userId}"]`);
+            if (playerElement) {
+                playerElement.remove();
+            }
+        }
+        
+        // 更新玩家状态
+        function updatePlayerStatus(userId, ready) {
+            const playerElement = document.querySelector(`.player[data-user-id="${userId}"]`);
+            if (playerElement) {
+                const statusSpan = playerElement.querySelector('.player-status');
+                statusSpan.className = `player-status ${ready ? 'ready' : 'not-ready'}`;
+                statusSpan.textContent = ready ? '已准备' : '未准备';
+                
+                // 如果是当前用户，更新准备按钮
+                if (userId === userId) {
+                    isReady = ready;
+                    const readyBtn = document.getElementById('ready-btn');
+                    readyBtn.textContent = ready ? '取消准备' : '准备';
+                    readyBtn.className = `ready-btn ${ready ? 'cancel' : ''}`;
+                }
+            }
+        }
+        
+        // 切换准备状态
+        function toggleReady() {
+            isReady = !isReady;
+            
+            // 更新按钮状态
+            const readyBtn = document.getElementById('ready-btn');
+            readyBtn.textContent = isReady ? '取消准备' : '准备';
+            readyBtn.className = `ready-btn ${isReady ? 'cancel' : ''}`;
+            
+            // 发送准备状态消息
+            sendWebSocketMessage({
+                type: 'ready',
+                roomId: roomId,
+                userId: userId,
+                ready: isReady
+            });
+        }
+        
+        // 离开房间
+        function leaveRoom() {
+            if (confirm('确定要离开房间吗？')) {
+                // 发送离开房间消息
+                sendWebSocketMessage({
+                    type: 'leave',
+                    roomId: roomId,
+                    userId: userId
+                });
+                
+                // 关闭WebSocket连接
+                if (socket) {
+                    socket.close();
+                }
+                
+                // 重定向到大厅
+                window.location.href = '/lobby';
+            }
+        }
+        
+        // 开始游戏
+        function startGame(gameState) {
+            // 隐藏准备按钮
+            document.getElementById('ready-btn').style.display = 'none';
+            
+            // 更新房间状态
+            updateRoomStatus('playing');
+            
+            // 初始化游戏界面
+            // 这里需要根据您的游戏逻辑来实现
+            console.log('游戏开始，初始状态:', gameState);
+            
+            // 示例：清空游戏区域
+            const gameBoard = document.getElementById('game-board');
+            gameBoard.innerHTML = '';
+            
+            // 这里添加游戏初始化代码
+        }
+        
+        // 更新游戏状态
+        function updateGame(gameState) {
+            // 根据游戏状态更新界面
+            // 这里需要根据您的游戏逻辑来实现
+            console.log('游戏状态更新:', gameState);
+            
+            // 这里添加游戏状态更新代码
+        }
+        
+        // 结束游戏
+        function endGame(results) {
+            // 显示游戏结果
+            console.log('游戏结束，结果:', results);
+            
+            // 更新房间状态
+            updateRoomStatus('finished');
+            
+            // 显示准备按钮
+            document.getElementById('ready-btn').style.display = 'block';
+            document.getElementById('ready-btn').textContent = '准备';
+            document.getElementById('ready-btn').className = 'ready-btn';
+            isReady = false;
+            
+            // 这里添加游戏结束处理代码
+        }
+    </script>
+</body>
+</html>
