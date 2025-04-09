@@ -68,10 +68,14 @@ void TetrisServer::initializeRouter()
     /*---------游戏大厅-------------*/
     server_.Get("/api/user/status", std::make_shared<UserStatusHandler>(this));         // 用户状态
     server_.Get("/api/rooms", std::make_shared<RoomsInfoHandler>(this));                // 房间信息
-    server_.Post("/api/rooms/create", std::make_shared<RoomsCreateHandler>(this));      // 创建房间
+    server_.Post("/api/rooms/op", std::make_shared<RoomsCreateHandler>(this));      // 创建房间
     server_.addRoute(http::HttpRequest::Method::kGet, "/room/:roomId/op/:op/userId/:userId/username/:username",
                      std::make_shared<RoomsOpHandler>(this));                           // 加入房间
-    server_.Get("/ws/upgrade", std::make_shared<UpgradHandler>(this));                   // 加入房间
+    server_.Get("/ws/upgrade", std::make_shared<UpgradHandler>(this));                  // 加入房间
+
+    /*------------WebSocket相关路由------------------*/
+    server_.addWebSocketRoute("join", std::make_shared<PlayerJoinHandler>(this));       // 玩家加入房间
+    server_.addWebSocketRoute("getRoomInfo", std::make_shared<PlayerGetHandler>(this)); // 获取房间信息
 }
 
 /* WebSocket消息处理类，根据消息类型进行玩家加入或者退出房间，准备或者开始游戏 */

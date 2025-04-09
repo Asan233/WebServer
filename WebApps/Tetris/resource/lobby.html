@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>俄罗斯方块 - 游戏大厅</title>
+    <link rel="icon" href="data:,">
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -215,7 +216,8 @@
         });
         
         // 检查登录状态
-        function checkLoginStatus() {
+        function checkLoginStatus() 
+        {
             fetch('/api/user/status')
                 .then(response => response.json())
                 .then(data => {
@@ -239,7 +241,8 @@
         }
         
         // 加载房间列表
-        function loadRoomList() {
+        function loadRoomList() 
+        {
             const roomsContainer = document.getElementById('rooms-container');
             roomsContainer.innerHTML = `
                 <div class="loading">
@@ -264,7 +267,8 @@
         }
         
         // 显示房间列表
-        function displayRooms(rooms) {
+        function displayRooms(rooms) 
+        {
             const roomsContainer = document.getElementById('rooms-container');
             
             if (rooms.length === 0) {
@@ -298,16 +302,19 @@
         }
         
         // 创建房间
-        function createRoom() {
-            fetch('/api/rooms/create', {
+        function createRoom() 
+        {
+            fetch('/api/rooms/op', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
-                }
+                },
+                body: JSON.stringify({ userId: userId, username: username, op: "create" })
             })
             .then(response => response.json())
             .then(data => {
-                if (data.status === 'ok') {
+                if (data.status === 'ok') 
+                {
                     // const userIddata = JSON.stringify({userId: userId});
                     // const usernamedata = JSON.stringify({username: username});
                     // const encodedDatauserId = encodeURIComponent(userIddata);
@@ -315,30 +322,40 @@
                     
                     // 创建成功，跳转到房间页面
                     window.location.href = `/room/${data.roomId}/op/join/userId/${userId}/username/${username}`;
-                } else {
+                } else 
+                {
                     alert('创建房间失败: ' + data.message);
                 }
             })
-            .catch(error => {
+            .catch(error => 
+            {
                 console.error('Error:', error);
                 alert('创建房间失败，请重试');
             });
         }
         
         // 加入房间
-        function joinRoom(roomId) {
-            fetch(`/api/rooms/${roomId}/join`, {
+        function joinRoom(RoomId) 
+        {
+            fetch(`/api/rooms/op`, 
+            {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
-                }
+                },
+                body: JSON.stringify( { userId: userId, 
+                                        username: username,
+                                        op: "join",
+                                        roomId: RoomId })
             })
             .then(response => response.json())
             .then(data => {
-                if (data.status === 'ok') {
+                if (data.status === 'ok') 
+                {
                     // 加入成功，跳转到房间页面
-                    window.location.href = `/room/${roomId}`;
-                } else {
+                    window.location.href = `/room/${RoomId}/op/join/userId/${userId}/username/${username}`;
+                } else 
+                {
                     alert('加入房间失败: ' + data.message);
                     // 刷新房间列表
                     loadRoomList();

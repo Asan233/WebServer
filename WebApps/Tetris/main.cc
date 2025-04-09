@@ -12,7 +12,8 @@ muduo::AsyncLogging* getAsyncLog() {
 }
 
 // 异步日志写入函数
-void asyncLog(const char* msg, int len) {
+void asyncLog(const char* msg, int len) 
+{
     muduo::AsyncLogging* log = getAsyncLog();
     if(log) log->append(msg, len); // 追加日志
 }

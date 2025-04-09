@@ -16,7 +16,7 @@ bool Room::addPlayer(const std::string& userId, const std::string& username)
 {
     std::lock_guard<std::mutex> lock(mutex_);
     // 房间已满或者房间已经开始游戏
-    if(players_.size() >= 2 && status_ != RoomStatus::WAITING) 
+    if(players_.size() >= 2 || status_ != RoomStatus::WAITING) 
     {
         return false;
     }
@@ -42,9 +42,26 @@ bool Room::removePlayer(const std::string& userId)
     return false;
 }
 
+nlohmann::json Room::getAllPlayerInfo() const
+{
+    nlohmann::json playersJson = nlohmann::json::array();
+
+    for (const auto& pair : players_) 
+    {
+        const auto& player = pair.second;
+        playersJson.push_back({
+            {"userId", player.userId},
+            {"username", player.username},
+            {"ready", player.ready}
+        });
+    }
+
+    return playersJson;
+}
+
 nlohmann::json Room::toJson() const
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    //std::lock_guard<std::mutex> lock(mutex_);
     
     nlohmann::json playersJson = nlohmann::json::array();
     for (const auto& pair : players_) {

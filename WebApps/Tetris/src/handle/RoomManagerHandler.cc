@@ -19,21 +19,44 @@ void RoomsInfoHandler::handle(const http::HttpRequest& req, http::HttpResponse* 
 /* 游戏房间创建路由 */
 void RoomsCreateHandler::handle(const http::HttpRequest& req, http::HttpResponse* resp)
 {
-    nlohmann::json roomsInfo;
-    auto session = tetrisServer_->getSessionManager()->getSession(req, resp);
-    std::string userId = session->getValue("userId");
-    std::string userName = session->getValue("userName");
+    json JsonMsg = json::parse(req.getBody());
 
-    if( tetrisServer_->getUserOnline(userId) )
+    if(JsonMsg["op"] == "create")
     {
-        auto Roomptr = RoomManager::getInstance()->createRoom(userId, userName);
-        roomsInfo["status"] = "ok";
-        roomsInfo["roomId"] = Roomptr->getId();
-    }
+        nlohmann::json roomsInfo;
+        auto session = tetrisServer_->getSessionManager()->getSession(req, resp);
+        std::string userId = session->getValue("userId");
+        std::string userName = session->getValue("userName");
 
-    std::string buf = roomsInfo.dump(4);
-    tetrisServer_->packageResp(req.getVersion(), http::HttpResponse::k200Ok, "ok",
-                               false, "application/json", buf.size(), buf, resp);
+        if( tetrisServer_->getUserOnline(userId) )
+        {
+            auto Roomptr = RoomManager::getInstance()->createRoom(userId, userName);
+            roomsInfo["status"] = "ok";
+            roomsInfo["roomId"] = Roomptr->getId();
+        }
+
+        std::string buf = roomsInfo.dump(4);
+        tetrisServer_->packageResp(req.getVersion(), http::HttpResponse::k200Ok, "ok",
+                                false, "application/json", buf.size(), buf, resp);
+    }else if(JsonMsg["op"] == "join")
+    {
+        std::string roomId = JsonMsg["roomId"];
+        auto session = tetrisServer_->getSessionManager()->getSession(req, resp);
+        std::string userId = session->getValue("userId");
+        std::string userName = session->getValue("userName");
+        nlohmann::json response;
+        if( RoomManager::getInstance()->getRoom(roomId)->getPlayerCount() < 2)
+        {
+            response["status"] = "ok";
+        }else
+        {
+            response["status"] = "error";
+            response["message"] = "房间已满";
+        }
+        std::string buf = response.dump(4);
+        tetrisServer_->packageResp(req.getVersion(), http::HttpResponse::k200Ok, "ok",
+                                false, "application/json", buf.size(), buf, resp);
+    }
 }
 
 /* 游戏玩家加入房间处理 */
@@ -121,16 +144,24 @@ void PlayerJoinHandler::handle(const json& jsonMsg, http::websocket::WebSocketFr
         {
             json response;
             response["type"] = "playerJoined";
-            response["player"] = userName;
+            response["player"] = {
+                {"ready", false},
+                {"userId", userId},
+                {"username", userName}
+            };
             frame->putPayload(response.dump());
+            LOG_INFO << "players : " << frame->getPayload();
             auto data = frame->dump();
             std::vector<std::string> players = room->getAllUserId();
+            LOG_INFO << "players size: " << players.size();
             for(const auto& playerId : players)
             {
                 auto conn = http::websocket::WebSocketManager::instance()->getConnection(playerId);
-                if (conn)
+                
+                if ( conn )
                 {
-                    conn->getLoop()->runInLoop([conn, data]() {
+                    conn->getLoop()->runInLoop( [conn, data, playerId] () {
+                        LOG_INFO << "通知玩家： " << playerId << " 新玩家加入房间 " << conn->peerAddress().toIpPort();
                         conn->send(data.data(), data.size());
                     });
                 }
@@ -143,6 +174,30 @@ void PlayerJoinHandler::handle(const json& jsonMsg, http::websocket::WebSocketFr
             response["message"] = "Room is full or already started";
             frame->putPayload(response.dump());
         }
+    }
+}
+
+void PlayerGetHandler::handle(const json& jsonMsg, http::websocket::WebSocketFrame* frame)
+{
+    std::string roomId = jsonMsg["roomId"];
+    std::string userId = jsonMsg["userId"];
+    auto room = RoomManager::getInstance()->getRoom(roomId);
+    if ( room )
+    {
+        json response;
+        response["type"] = "playerList";
+        response["players"] = room->getAllPlayerInfo();
+        frame->putPayload(response.dump());
+        auto data = frame->dump();
+        auto conn = http::websocket::WebSocketManager::instance()->getConnection(userId);
+        if(conn) conn->send(data.data(), data.size());
+    }
+    else
+    {
+        json response;
+        response["status"] = "error";
+        response["message"] = "房间不存在";
+        frame->putPayload(response.dump());
     }
 }
 

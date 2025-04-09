@@ -44,6 +44,7 @@ private:
 
 };
 
+
 /*-------------------------------WebSocket相关的路由处理方法-------------------------------------*/
 class PlayerJoinHandler : public http::router::WebSocketHandler
 {
@@ -56,7 +57,15 @@ private:
     TetrisServer* tetrisServer_;
 };
 
-
+class PlayerGetHandler : public http::router::WebSocketHandler
+{
+public:
+    explicit PlayerGetHandler(TetrisServer* tetrisServer) : tetrisServer_(tetrisServer) {}
+    ~PlayerGetHandler() = default;
+    void handle(const json&, http::websocket::WebSocketFrame* ) override;
+private:
+    TetrisServer* tetrisServer_;
+};
 
 
 }

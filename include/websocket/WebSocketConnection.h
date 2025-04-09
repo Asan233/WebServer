@@ -38,8 +38,9 @@ public:
     // 重置上下文状态
     void reset()
     {
+        WebSocketFrame dummy;
         Status_ = kExpectHeader;
-        Requestframe_.payload.clear();
+        Requestframe_ = dummy;
         frameSize_ = 0;
         headerSize_ = 0;
         payloadSize_ = 0;

@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <muduo/base/Timestamp.h>
 #include <muduo/net/TcpConnection.h>
-
+#include <muduo/base/Logging.h>
 
 namespace http
 {

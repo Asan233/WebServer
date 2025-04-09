@@ -76,6 +76,8 @@ public:
     // 转换为JSON对象（用于API响应）
     nlohmann::json toJson() const;
     
+    nlohmann::json getAllPlayerInfo() const;
+
     // 获取创建时间
     time_t getCreateTime() const { return createTime_; }
     

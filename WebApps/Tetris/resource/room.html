@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>俄罗斯方块 - 房间</title>
+    <link rel="icon" href="data:,">
     <style>
         body {
             font-family: 'Microsoft YaHei', sans-serif;
@@ -229,7 +230,7 @@
                 <div class="player-list">
                     <h2>玩家列表</h2>
                     <div id="players-container">
-                        <div class="loading">加载中...</div>
+                        <div class="loading"></div>
                     </div>
                 </div>
             </div>
@@ -263,14 +264,17 @@
         });
         
         // 检查登录状态
-        function checkLoginStatus() {
+        function checkLoginStatus() 
+        {
             fetch('/api/user/status')
                 .then(response => response.json())
                 .then(data => {
-                    if (data.isLoggedIn == "true") {
+                    if (data.isLoggedIn == "true") 
+                    {
                         userId = data.userId;
                         username = data.username;
                         document.getElementById('username').textContent = username;
+                        // 拉取现有房间信息
                         
                         // 连接WebSocket
                         connectWebSocket();
@@ -296,17 +300,26 @@
             // 创建新的WebSocket连接
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const host = window.location.host;
-            socket = new WebSocket(`${protocol}//${host}/ws/upgrade`);
+            socket = new WebSocket(`${protocol}//${host}/ws/upgrade?userId=${userId}`);
             
             updateConnectionStatus('connecting');
             
             // 连接建立时的回调
-            socket.onopen = function(event) {
+            socket.onopen = function(event) 
+            {
                 console.log('WebSocket连接已建立');
                 updateConnectionStatus('connected');
                 
                 console.log('准备发送数据:', {
                     type: 'join',
+                    roomId: roomId,
+                    userId: userId,
+                    username: username
+                });
+                
+                // 发送信息获得现有房间信息
+                sendWebSocketMessage({
+                    type: 'getRoomInfo',
                     roomId: roomId,
                     userId: userId,
                     username: username
@@ -384,8 +397,24 @@
                     updateRoomInfo(message.data);
                     break;
                 case 'playerJoined':
-                    addPlayerToList(message.player);
+                    // 修改这里，处理player数组
+                    if (Array.isArray(message.player)) 
+                    {
+                        // 如果是数组，遍历添加每个玩家
+                        message.player.forEach(player => {
+                            addPlayerToList(player);
+                        });
+                    } else 
+                    {
+                        // 兼容单个玩家对象的情况
+                        addPlayerToList(message.player);
+                    }
                     break;
+                case 'playerList':
+                    // 添加玩家列表
+                    message.players.forEach(player => {
+                            addPlayerToList(player);
+                        });
                 case 'playerLeft':
                     removePlayerFromList(message.userId);
                     break;
@@ -446,7 +475,8 @@
         }
         
         // 创建玩家元素
-        function createPlayerElement(player) {
+        function createPlayerElement(player) 
+        {
             const playerDiv = document.createElement('div');
             playerDiv.className = 'player';
             playerDiv.dataset.userId = player.userId;
@@ -466,7 +496,12 @@
         }
         
         // 添加玩家到列表
-        function addPlayerToList(player) {
+        function addPlayerToList(player) 
+        {
+            // console.log('玩家加入:', {
+            //     username: player.username,
+            //     userId: player.userId,
+            //     });
             const playersContainer = document.getElementById('players-container');
             const playerElement = createPlayerElement(player);
             playersContainer.appendChild(playerElement);

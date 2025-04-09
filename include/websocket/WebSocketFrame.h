@@ -31,6 +31,11 @@ struct WebSocketFrame {
     uint8_t masking_key[4];        // 掩码密钥
     std::vector<uint8_t> payload;   // 载荷数据
 
+    std::string getPayload() const 
+    {
+        return std::string(payload.begin(), payload.end());
+    }
+
     WebSocketFrame() : fin(true), rsv1(false), rsv2(false), rsv3(false),
                       opcode(OpCode::TEXT), mask(false), payload_length(0) 
     {
@@ -83,7 +88,8 @@ struct WebSocketFrame {
             
             // 64位长度，网络字节序(大端)
             uint64_t len64 = htobe64(payload_length);
-            for (int i = 0; i < 8; ++i) {
+            for (int i = 0; i < 8; ++i) 
+            {
                 frameData.push_back((len64 >> ((7 - i) * 8)) & 0xFF);
             }
         }
