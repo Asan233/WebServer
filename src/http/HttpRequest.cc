@@ -102,6 +102,12 @@ void HttpRequest::setQueryParameters(const char *start, const char *end)
         std::string value = lastPair.substr(equalPos + 1);
         queryParameters_[key] = value;
     }
+
+    // LOG_INFO << "queryParameters_ size: " << queryParameters_.size();
+    // for(auto &it : queryParameters_)
+    // {
+    //     LOG_INFO << "queryParameters_ key: " << it.first << " value: " << it.second;
+    // }
 }
 
 /* 解析HTTP请求头部 */

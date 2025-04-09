@@ -138,11 +138,17 @@ void HttpServer::onMessageHTTP(const muduo::net::TcpConnectionPtr &conn,
         // 如果buf缓冲区中解析出一个完整的数据包才封装响应报文
         if (context->gotAll())
         {
+            LOG_INFO << "HTTP Message: " << context->request().getBody();
             if( onRequest(conn, context->request()) )
             {
+                context->request().setQueryParameters(
+                                context->request().path().data(), 
+                                context->request().path().data() + context->request().path().size());
+                
+                std::string userId = context->request().getQueryParameters("userId");
+                //LOG_WARN << userId;
                 // 注册WebSocket连接
-                websocket::WebSocketManager::instance()->registerConnection(
-                    context->request().getPathParameters("param3"), conn);
+                websocket::WebSocketManager::instance()->registerConnection(userId, conn);
                 // WebSocket协议升级
                 conn->setContext(websocket::WebSocketConnection());
                 conn->setMessageCallback(
@@ -190,7 +196,7 @@ void HttpServer::onMessageWebSocket(const muduo::net::TcpConnectionPtr &conn,
         // 如果buf缓冲区中解析出一个完整的数据包才封装响应报文
         if ( context->gotAll() )
         {
-            LOG_INFO << "WebSocket Message: " << context->getRequestFrame().payload.data();
+            LOG_INFO << "WebSocket Message: " << context->getRequestFrame().getPayload() << " conn : " << conn->peerAddress().toIpPort();
             onRequest(conn, context->getRequestFrame());
             context->reset();
         }
@@ -236,7 +242,7 @@ bool HttpServer::onRequest(const muduo::net::TcpConnectionPtr &conn,
 {
     try
     {
-        std::string payload(reinterpret_cast<const char*>(frame.payload.data()), frame.payload_length);
+        std::string payload(frame.getPayload());
         json jsonMsg = json::parse(payload);
         std::string roomId = jsonMsg["roomId"];
         // 执行WebSocket回调函数
@@ -247,7 +253,7 @@ bool HttpServer::onRequest(const muduo::net::TcpConnectionPtr &conn,
     catch (const std::exception& e)
     {
         LOG_ERROR << "Exception in onMessageWebSocket: " << e.what();
-        LOG_ERROR << "收到的请求内容：" << frame.payload.data();
+        LOG_ERROR << "收到的请求内容：" << frame.getPayload();
         return false;
     }
     return false;
@@ -264,7 +270,7 @@ void HttpServer::handleRequest(const HttpRequest &req, HttpResponse *resp)
         middlewareChain_.processBefore(mutableReq);
 
         // 路由处理
-        if (!router_.route(mutableReq, resp))
+        if ( !router_.route(mutableReq, resp) )
         {
             LOG_INFO << "请求的啥, url: " << req.method() << " " << req.path();
             LOG_INFO << "未找到路由, 返回404";
