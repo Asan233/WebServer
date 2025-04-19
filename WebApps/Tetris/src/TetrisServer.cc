@@ -76,6 +76,7 @@ void TetrisServer::initializeRouter()
     /*------------WebSocket相关路由------------------*/
     server_.addWebSocketRoute("join", std::make_shared<PlayerJoinHandler>(this));       // 玩家加入房间
     server_.addWebSocketRoute("getRoomInfo", std::make_shared<PlayerGetHandler>(this)); // 获取房间信息
+    server_.addWebSocketRoute("ready", std::make_shared<PlayerReadHandler>(this));      // 玩家准备
 }
 
 /* WebSocket消息处理类，根据消息类型进行玩家加入或者退出房间，准备或者开始游戏 */

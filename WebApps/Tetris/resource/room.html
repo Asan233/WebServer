@@ -201,6 +201,116 @@
         .playing {
             color: #3498db;
         }
+
+        .game-board {
+            width: 300px;
+            height: 600px;
+            background-color: #111;
+            margin: 0 auto;
+            position: relative;
+            border: 2px solid #333;
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(20, 1fr);
+        }
+
+        .cell {
+            border: 1px solid #222;
+        }
+
+        .cell.filled {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .cell.color-1 {
+            background-color: #00f0f0; /* I */
+        }
+
+        .cell.color-2 {
+            background-color: #0000f0; /* J */
+        }
+
+        .cell.color-3 {
+            background-color: #f0a000; /* L */
+        }
+
+        .cell.color-4 {
+            background-color: #f0f000; /* O */
+        }
+
+        .cell.color-5 {
+            background-color: #00f000; /* S */
+        }
+
+        .cell.color-6 {
+            background-color: #a000f0; /* T */
+        }
+
+        .cell.color-7 {
+            background-color: #f00000; /* Z */
+        }
+
+        .next-piece {
+            width: 100px;
+            height: 100px;
+            background-color: #222;
+            margin: 10px auto;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+        }
+
+        .game-info {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .score {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .controls-info {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .player-role {
+            font-weight: bold;
+            color: #3498db;
+        }
+
+        .game-over-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+            z-index: 10;
+        }
+
+        .game-over-score {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -220,6 +330,14 @@
                 <div class="room-status waiting" id="room-status">等待玩家准备...</div>
                 <div class="game-board" id="game-board">
                     <!-- 游戏区域将由JavaScript动态生成 -->
+                </div>
+                <div class="game-info">
+                    <div class="score" id="score">分数: 0</div>
+                    <div>下一个方块:</div>
+                    <div class="next-piece" id="next-piece"></div>
+                </div>
+                <div class="controls-info" id="controls-info">
+                    <!-- 控制说明将根据玩家角色动态生成 -->
                 </div>
                 <div class="game-controls">
                     <button class="ready-btn" id="ready-btn">准备</button>
@@ -310,28 +428,32 @@
                 console.log('WebSocket连接已建立');
                 updateConnectionStatus('connected');
                 
-                console.log('准备发送数据:', {
-                    type: 'join',
-                    roomId: roomId,
-                    userId: userId,
-                    username: username
-                });
-                
-                // 发送信息获得现有房间信息
-                sendWebSocketMessage({
-                    type: 'getRoomInfo',
-                    roomId: roomId,
-                    userId: userId,
-                    username: username
-                });
-
-                // 发送加入房间消息
-                sendWebSocketMessage({
-                    type: 'join',
-                    roomId: roomId,
-                    userId: userId,
-                    username: username
-                });
+                // console.log('准备发送数据:', {
+                //     type: 'join',
+                //     roomId: roomId,
+                //     userId: userId,
+                //     username: username
+                // });
+                // 使用setTimeout替代sleep，延迟100毫秒发送消息
+                setTimeout(() => {
+                    // 发送信息获得现有房间信息
+                    sendWebSocketMessage({
+                        type: 'getRoomInfo',
+                        roomId: roomId,
+                        userId: userId,
+                        username: username
+                    });
+                    
+                    // 再延迟100毫秒发送加入房间消息
+                    setTimeout(() => {
+                        sendWebSocketMessage({
+                            type: 'join',
+                            roomId: roomId,
+                            userId: userId,
+                            username: username
+                        });
+                    }, 100);
+                }, 100);
             };
             
             // 接收到消息的回调
@@ -393,6 +515,7 @@
             console.log('收到WebSocket消息:', message);
             
             switch(message.type) {
+
                 case 'roomInfo':
                     updateRoomInfo(message.data);
                     break;
@@ -410,11 +533,13 @@
                         addPlayerToList(message.player);
                     }
                     break;
+
                 case 'playerList':
                     // 添加玩家列表
                     message.players.forEach(player => {
                             addPlayerToList(player);
                         });
+                    break;
                 case 'playerLeft':
                     removePlayerFromList(message.userId);
                     break;
@@ -422,7 +547,7 @@
                     updatePlayerStatus(message.userId, message.ready);
                     break;
                 case 'gameStart':
-                    startGame(message.data);
+                    startGame(message.gameState);
                     break;
                 case 'gameUpdate':
                     updateGame(message.data);
@@ -437,7 +562,8 @@
         }
         
         // 更新房间信息
-        function updateRoomInfo(roomInfo) {
+        function updateRoomInfo(roomInfo) 
+        {
             // 更新玩家列表
             const playersContainer = document.getElementById('players-container');
             playersContainer.innerHTML = '';
@@ -451,17 +577,20 @@
             updateRoomStatus(roomInfo.status);
             
             // 如果游戏已经开始，更新游戏状态
-            if (roomInfo.status === 'playing') {
+            if (roomInfo.status === 'playing') 
+            {
                 startGame(roomInfo.gameState);
             }
         }
         
         // 更新房间状态
-        function updateRoomStatus(status) {
+        function updateRoomStatus(status) 
+        {
             const statusElement = document.getElementById('room-status');
             statusElement.className = 'room-status ' + status;
             
-            switch(status) {
+            switch(status) 
+            {
                 case 'waiting':
                     statusElement.textContent = '等待玩家准备...';
                     break;
@@ -516,25 +645,27 @@
         }
         
         // 更新玩家状态
-        function updatePlayerStatus(userId, ready) {
+        function updatePlayerStatus(userId, ready) 
+        {
             const playerElement = document.querySelector(`.player[data-user-id="${userId}"]`);
             if (playerElement) {
                 const statusSpan = playerElement.querySelector('.player-status');
                 statusSpan.className = `player-status ${ready ? 'ready' : 'not-ready'}`;
                 statusSpan.textContent = ready ? '已准备' : '未准备';
                 
-                // 如果是当前用户，更新准备按钮
-                if (userId === userId) {
-                    isReady = ready;
-                    const readyBtn = document.getElementById('ready-btn');
-                    readyBtn.textContent = ready ? '取消准备' : '准备';
-                    readyBtn.className = `ready-btn ${ready ? 'cancel' : ''}`;
-                }
+                // // 如果是当前用户，更新准备按钮
+                // if (userId === window.userId) {
+                //     isReady = ready;
+                //     const readyBtn = document.getElementById('ready-btn');
+                //     readyBtn.textContent = ready ? '取消准备' : '准备';
+                //     readyBtn.className = `ready-btn ${ready ? 'cancel' : ''}`;
+                // }
             }
         }
         
         // 切换准备状态
-        function toggleReady() {
+        function toggleReady() 
+        {
             isReady = !isReady;
             
             // 更新按钮状态
@@ -573,32 +704,176 @@
         
         // 开始游戏
         function startGame(gameState) {
-            // 隐藏准备按钮
-            document.getElementById('ready-btn').style.display = 'none';
+             // 隐藏准备按钮
+             document.getElementById('ready-btn').style.display = 'none';
             
             // 更新房间状态
             updateRoomStatus('playing');
             
             // 初始化游戏界面
-            // 这里需要根据您的游戏逻辑来实现
             console.log('游戏开始，初始状态:', gameState);
             
-            // 示例：清空游戏区域
+            // 清空游戏区域
             const gameBoard = document.getElementById('game-board');
             gameBoard.innerHTML = '';
             
-            // 这里添加游戏初始化代码
+            // 创建游戏网格
+            for (let y = 0; y < 20; y++) {
+                for (let x = 0; x < 10; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.x = x;
+                    cell.dataset.y = y;
+                    gameBoard.appendChild(cell);
+                }
+            }
+            
+            // 初始化下一个方块区域
+            const nextPiece = document.getElementById('next-piece');
+            nextPiece.innerHTML = '';
+            for (let y = 0; y < 4; y++) {
+                for (let x = 0; x < 4; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    nextPiece.appendChild(cell);
+                }
+            }
+            
+            // 设置玩家角色和控制说明
+            const controlsInfo = document.getElementById('controls-info');
+            const playerIndex = getPlayerIndex();
+            
+            if (playerIndex === 0) {
+                controlsInfo.innerHTML = `
+                    <p>你的角色: <span class="player-role">水平移动控制</span></p>
+                    <p>按键: ← 左移, → 右移, ↓ 加速下落</p>
+                `;
+                
+                // 添加键盘事件监听器
+                document.addEventListener('keydown', handleHorizontalMovement);
+            } else if (playerIndex === 1) {
+                controlsInfo.innerHTML = `
+                    <p>你的角色: <span class="player-role">旋转控制</span></p>
+                    <p>按键: ↑ 旋转, ↓ 加速下落</p>
+                `;
+                
+                // 添加键盘事件监听器
+                document.addEventListener('keydown', handleRotation);
+            } else {
+                controlsInfo.innerHTML = `
+                    <p>你的角色: <span class="player-role">观察者</span></p>
+                `;
+            }
+            
+            // 更新游戏状态
+            updateGame(gameState);
         }
         
+        // 获取当前玩家在房间中的索引
+        function getPlayerIndex() {
+            const playersContainer = document.getElementById('players-container');
+            const players = playersContainer.querySelectorAll('.player');
+            
+            for (let i = 0; i < players.length; i++) {
+                const playerId = players[i].dataset.userId;
+                if (playerId === userId) {
+                    return i;
+                }
+            }
+            
+            return -1; // 未找到玩家
+        }
+
         // 更新游戏状态
         function updateGame(gameState) {
-            // 根据游戏状态更新界面
-            // 这里需要根据您的游戏逻辑来实现
-            console.log('游戏状态更新:', gameState);
+            // 更新游戏板
+            updateGameBoard(gameState.board, gameState.currentShape, gameState.currentX, gameState.currentY);
             
-            // 这里添加游戏状态更新代码
+            // 更新下一个方块
+            updateNextPiece(gameState.nextShape);
+            
+            // 更新分数
+            document.getElementById('score').textContent = `分数: ${gameState.score}`;
+            
+            // 检查游戏是否结束
+            if (gameState.gameOver) {
+                endGame({ score: gameState.score });
+            }
         }
         
+        // 更新游戏板
+        function updateGameBoard(board, currentShape, currentX, currentY) {
+            const gameBoard = document.getElementById('game-board');
+            const cells = gameBoard.querySelectorAll('.cell');
+            
+            // 清除所有单元格
+            cells.forEach(cell => {
+                cell.className = 'cell';
+            });
+            
+            // 绘制固定的方块
+            for (let y = 0; y < board.length; y++) {
+                for (let x = 0; x < board[y].length; x++) {
+                    const value = board[y][x];
+                    if (value > 0) {
+                        const index = y * 10 + x;
+                        if (index < cells.length) {
+                            cells[index].className = `cell filled color-${value}`;
+                        }
+                    }
+                }
+            }
+            
+            // 绘制当前活动方块
+            if (currentShape && currentX !== undefined && currentY !== undefined) {
+                const shapeSize = Math.sqrt(currentShape.length);
+                for (let y = 0; y < shapeSize; y++) {
+                    for (let x = 0; x < shapeSize; x++) {
+                        const value = currentShape[y * shapeSize + x];
+                        if (value > 0) {
+                            const boardX = currentX + x;
+                            const boardY = currentY + y;
+                            
+                            if (boardY >= 0 && boardY < 20 && boardX >= 0 && boardX < 10) {
+                                const index = boardY * 10 + boardX;
+                                if (index < cells.length) {
+                                    cells[index].className = `cell filled color-${value}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 更新下一个方块
+        function updateNextPiece(nextShape) {
+            const nextPiece = document.getElementById('next-piece');
+            const cells = nextPiece.querySelectorAll('.cell');
+            
+            // 清除所有单元格
+            cells.forEach(cell => {
+                cell.className = 'cell';
+            });
+            
+            // 绘制下一个方块
+            if (nextShape) {
+                const shapeSize = Math.sqrt(nextShape.length);
+                for (let y = 0; y < shapeSize; y++) {
+                    for (let x = 0; x < shapeSize; x++) {
+                        const value = nextShape[y * shapeSize + x];
+                        if (value > 0) {
+                            const index = y * 4 + x;
+                            if (index < cells.length) {
+                                cells[index].className = `cell filled color-${value}`;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
         // 结束游戏
         function endGame(results) {
             // 显示游戏结果
@@ -614,6 +889,16 @@
             isReady = false;
             
             // 这里添加游戏结束处理代码
+        }
+
+        // 发送游戏输入
+        function sendGameInput(action) {
+            sendWebSocketMessage({
+                type: 'gameInput',
+                roomId: roomId,
+                userId: userId,
+                action: action
+            });
         }
     </script>
 </body>

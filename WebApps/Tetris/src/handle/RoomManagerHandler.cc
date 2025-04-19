@@ -131,6 +131,32 @@ void RoomsOpHandler::handle(const http::HttpRequest& req, http::HttpResponse* re
 }
 
 
+
+/*----------------------- 广播房间所有玩家--------------------------------------*/
+bool PlayerBroadcastHandler(std::string roomid, std::vector<uint8_t>& message)
+{
+    auto room = RoomManager::getInstance()->getRoom(roomid);
+    if ( room )
+    {
+        std::vector<std::string> players = room->getAllUserId();
+        for(const auto& playerId : players)
+        {
+            auto conn = http::websocket::WebSocketManager::instance()->getConnection(playerId);
+            if ( conn )
+            {
+                conn->getLoop()->runInLoop( [conn, message, playerId] () {
+                    //LOG_INFO << "通知玩家： " << playerId << " 新玩家加入房间 " << conn->peerAddress().toIpPort();
+                    conn->send(message.data(), message.size());
+                });
+            }
+        }
+    }else
+    {
+        LOG_INFO << roomid << " 房间不存在";
+        return false;
+    }
+}
+
 /*-------------------------------WebSocket相关的路由处理方法-------------------------------------*/
 void PlayerJoinHandler::handle(const json& jsonMsg, http::websocket::WebSocketFrame* frame)
 {
@@ -152,20 +178,7 @@ void PlayerJoinHandler::handle(const json& jsonMsg, http::websocket::WebSocketFr
             frame->putPayload(response.dump());
             LOG_INFO << "players : " << frame->getPayload();
             auto data = frame->dump();
-            std::vector<std::string> players = room->getAllUserId();
-            LOG_INFO << "players size: " << players.size();
-            for(const auto& playerId : players)
-            {
-                auto conn = http::websocket::WebSocketManager::instance()->getConnection(playerId);
-                
-                if ( conn )
-                {
-                    conn->getLoop()->runInLoop( [conn, data, playerId] () {
-                        LOG_INFO << "通知玩家： " << playerId << " 新玩家加入房间 " << conn->peerAddress().toIpPort();
-                        conn->send(data.data(), data.size());
-                    });
-                }
-            }
+            PlayerBroadcastHandler(roomId, data);
         }
         else
         {
@@ -201,7 +214,38 @@ void PlayerGetHandler::handle(const json& jsonMsg, http::websocket::WebSocketFra
     }
 }
 
-
+void PlayerReadHandler::handle(const json& jsonMsg, http::websocket::WebSocketFrame* frame)
+{
+    std::string roomId = jsonMsg["roomId"];
+    std::string userId = jsonMsg["userId"];
+    bool isready = jsonMsg["ready"];
+    auto room = RoomManager::getInstance()->getRoom(roomId);
+    if ( room )
+    {
+        if( room->setPlayerReady(userId, isready) )
+        {
+            json response;
+            response["type"] = "playerReady";
+            response["userId"] = userId;
+            response["ready"] = isready;
+            frame->putPayload(response.dump());
+            auto data = frame->dump();
+            PlayerBroadcastHandler(roomId, data);
+        }
+        // 玩家1 与 玩家2 准备就绪则自动开始游戏
+        if(room->allPlayersReady())
+        {
+            room->startGame();
+            json response;
+            response["type"] = "gameStart";
+            response["gameState"] = room->getGameState();
+            //LOG_INFO << response.dump(4);
+            frame->putPayload(response.dump());
+            auto data = frame->dump();
+            PlayerBroadcastHandler(roomId, data);
+        }
+    }
+}
 
 
 }
