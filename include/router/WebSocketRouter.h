@@ -26,7 +26,7 @@ public:
     {
         // 查找处理器
         std::string type = jsonMsg["type"];
-        LOG_INFO << "WebSocket路由处理器: " << type;
+        //LOG_INFO << "WebSocket路由处理器: " << type;
         auto it = handlers_.find(type);
         if (it != handlers_.end())
         {

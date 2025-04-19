@@ -7,9 +7,13 @@
 #include <memory>
 #include <mutex>
 #include <atomic>
+#include <thread>
 #include <nlohmann/json.hpp>
 
 #include <muduo/base/Logging.h>
+
+#include "GameState.h"
+
 namespace Tetris
 {
 
@@ -65,11 +69,21 @@ public:
     bool setPlayerReady(const std::string& userId, bool ready);
     
     // 检查是否所有玩家都准备好了
-    bool allPlayersReady() const;
+    bool allPlayersReady() const 
+    { return playerReadyCount_ == 2; }
     
     // 开始游戏
     bool startGame();
     
+    // 处理玩家输入
+    bool handlePlayerInput(const std::string& userId, const std::string& action);
+
+    // 更新游戏状态
+    void updateGame();
+
+    // 获得游戏状态
+    nlohmann::json getGameState() const;
+
     // 结束游戏
     void endGame();
     
@@ -108,6 +122,12 @@ private:
     std::atomic<bool> gameStarted_;                       // 游戏是否已开始
     std::string creatorId_;                               // 创建者ID
     std::string creatorName_;                             // 创建者名称
+    std::atomic<int> playerReadyCount_;                   // 准备好的玩家数量
+
+    std::unique_ptr<GameState> gameState_;                // 游戏状态
+    std::thread gameThread_;                              // 游戏线程
+    std::atomic<bool> gameRunning_;                       // 游戏更新定时器
+
 };
 
 }

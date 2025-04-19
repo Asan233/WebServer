@@ -67,6 +67,16 @@ private:
     TetrisServer* tetrisServer_;
 };
 
+class PlayerReadHandler : public http::router::WebSocketHandler
+{
+public:
+    explicit PlayerReadHandler(TetrisServer* tetrisServer) : tetrisServer_(tetrisServer) {}
+    ~PlayerReadHandler() = default;
+    void handle(const json&, http::websocket::WebSocketFrame* ) override;
+
+private:
+    TetrisServer* tetrisServer_;
+};
 
 }
 
